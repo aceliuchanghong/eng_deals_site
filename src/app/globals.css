@@ -79,6 +79,11 @@
   50%      { box-shadow: 0 0 0 10px rgba(74, 128, 237, 0.06); }
 }
 
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
 @keyframes slideIn {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }

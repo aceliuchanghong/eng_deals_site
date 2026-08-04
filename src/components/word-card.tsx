@@ -44,7 +44,7 @@ export function WordCard({ result, rank, maxCount }: Props) {
         {/* phonetic */}
         {phonetic && (
           <span className="font-mono text-xs text-warm-500 flex-shrink-0 hidden sm:inline">
-            {phonetic}
+            /{phonetic}/
           </span>
         )}
 
@@ -112,10 +112,14 @@ export function WordCard({ result, rank, maxCount }: Props) {
           <div className="px-4 pb-4 pt-0 space-y-3">
             {/* translation */}
             {translation && (
-              <p className="text-sm text-ink pl-11">
-                <span className="text-warm-400 text-xs mr-1">{t("wordCard.trans")}</span>
-                {translation}
-              </p>
+              <div className="pl-11">
+                <span className="text-xs text-warm-400 block mb-1">{t("wordCard.trans")}</span>
+                {translation.split(/\\n/).map((line, i) => (
+                  <p key={i} className="text-sm text-ink leading-relaxed">
+                    {line.trim()}
+                  </p>
+                ))}
+              </div>
             )}
 
             {/* forms */}

@@ -38,16 +38,6 @@ export function WordList({ results }: Props) {
 
   return (
     <>
-      {/* column headers - hidden on mobile */}
-      <div className="hidden sm:flex items-center gap-3 px-4 py-2 text-xs font-medium text-warm-400 uppercase tracking-wide border-b border-warm-200">
-        <span className="w-8 text-right flex-shrink-0">{t("wordList.colRank")}</span>
-        <span className="font-serif font-bold text-base text-transparent flex-shrink-0 min-w-[100px]">{t("wordList.colWord")}</span>
-        <span className="flex-shrink-0 hidden sm:inline">&nbsp;</span>
-        <span className="flex-1 min-w-[30px]">{t("wordList.colFrequency")}</span>
-        <span className="w-14 text-right flex-shrink-0">{t("wordList.colCount")}</span>
-        <span className="flex-shrink-0">{t("wordList.colTags")}</span>
-        <span className="w-4 flex-shrink-0">&nbsp;</span>
-      </div>
 
       <div className="border border-warm-200 rounded-lg overflow-hidden">
         {results.map((r, i) => (

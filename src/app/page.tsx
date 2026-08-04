@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
-import { History, BookOpen, Search } from "lucide-react";
-import type { FilterState, StopwordsLevel, AnalysisRecord } from "@/types";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { History, BookOpen, Search, Sparkles, BarChart3, FileText, Play } from "lucide-react";
+import type { FilterState, AnalysisRecord } from "@/types";
 import { applyFilters } from "@/lib/utils";
 import { useAnalyzer } from "@/hooks/use-analyzer";
 import { useI18n } from "@/lib/i18n";
@@ -14,101 +14,88 @@ import { WordList } from "@/components/word-list";
 import { ExportPdfButton } from "@/components/export-pdf-button";
 import { HistoryDrawer } from "@/components/history-drawer";
 
-// ── Page ──────────────────────────────────────────────────────────
-
 export default function Home() {
-  const { phase, progress, error, results, setResults, start, cancel } =
+  const { phase, setPhase, progress, error, results, setResults, start, cancel } =
     useAnalyzer();
   const [filters, setFilters] = useState<FilterState>({
-    stopwordsLevel: "basic",
+    stopwordsLevel: "strong",
     activeTags: [],
   });
   const [historyOpen, setHistoryOpen] = useState(false);
   const [fileName, setFileName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [demoLoading, setDemoLoading] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => setDebouncedSearch(searchQuery), 150);
+    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+  }, [searchQuery]);
+
   const { t, locale, setLocale } = useI18n();
 
-  // Stopwords in React state (not module-level cache) so useMemo reacts
-  const [stopwords, setStopwords] = useState<
-    Record<StopwordsLevel, Set<string>>
-  >({
-    none: new Set(),
-    basic: new Set(),
-    strong: new Set(),
-  });
-
-  // Load stopwords on mount into state
+  const [stopwords, setStopwords] = useState<Set<string>>(new Set());
   useEffect(() => {
-    Promise.all([
-      fetch("/stopwords/basic.json").then((r) =>
-        r.ok ? (r.json() as Promise<string[]>) : [],
-      ),
-      fetch("/stopwords/strong.json").then((r) =>
-        r.ok ? (r.json() as Promise<string[]>) : [],
-      ),
-    ])
-      .then(([basic, strong]) => {
-        setStopwords({
-          none: new Set(),
-          basic: new Set(basic.map((w) => w.toLowerCase())),
-          strong: new Set(strong.map((w) => w.toLowerCase())),
-        });
-      })
-      .catch(() => {
-        // ponytail: if stopwords fail, filter nothing
-      });
+    fetch("/stopwords/strong.json")
+      .then((r) => (r.ok ? (r.json() as Promise<string[]>) : []))
+      .then((words) => setStopwords(new Set(words.map((w) => w.toLowerCase()))))
+      .catch(() => {});
   }, []);
 
   const safeResults = results ?? [];
 
-  // Step 1: apply stopwords + exam tag filters
   const tagFiltered = useMemo(
-    () =>
-      applyFilters(
-        safeResults,
-        stopwords[filters.stopwordsLevel],
-        filters.activeTags,
-      ),
+    () => applyFilters(safeResults, stopwords, filters.activeTags),
     [safeResults, filters, stopwords],
   );
 
-  // Step 2: apply keyword search on top
   const filteredResults = useMemo(() => {
-    if (!searchQuery.trim()) return tagFiltered;
-    const q = searchQuery.toLowerCase().trim();
+    if (!debouncedSearch.trim()) return tagFiltered;
+    const q = debouncedSearch.toLowerCase().trim();
     return tagFiltered.filter((r) => r.lemma.toLowerCase().includes(q));
-  }, [tagFiltered, searchQuery]);
+  }, [tagFiltered, debouncedSearch]);
 
   const totalWords = safeResults.reduce((sum, r) => sum + r.totalCount, 0);
   const uniqueLemmas = safeResults.length;
-  const coveragePercent =
-    safeResults.length > 0
-      ? Math.round(
-          (safeResults.filter((r) => r.phonetic || r.translation).length /
-            safeResults.length) *
-            100,
-        )
-      : 0;
 
-  const handleFile = useCallback(
-    (file: File) => {
-      setFileName(file.name);
-      setSearchQuery("");
-      start(file);
-    },
-    [start],
-  );
+  const handleFile = useCallback((file: File) => {
+    setFileName(file.name);
+    setSearchQuery("");
+    start(file);
+  }, [start]);
 
-  const handleLoadRecord = useCallback(
-    (record: AnalysisRecord) => {
-      setFileName(record.fileName);
-      setFilters(record.filters);
-      setSearchQuery("");
-      setResults(record.results);
-      setHistoryOpen(false);
-    },
-    [setResults],
-  );
+  // Demo: fetch test.txt and analyze it
+  const handleDemo = useCallback(async () => {
+    setDemoLoading(true);
+    try {
+      const res = await fetch("/test.txt");
+      const text = await res.text();
+      const file = new File([text], "demo.txt", { type: "text/plain" });
+      handleFile(file);
+    } catch {
+      // ponytail: silently fail, user can still upload manually
+    } finally {
+      setDemoLoading(false);
+    }
+  }, [handleFile]);
+
+  const handleLoadRecord = useCallback((record: AnalysisRecord) => {
+    setFileName(record.fileName);
+    setFilters(record.filters);
+    setSearchQuery("");
+    setPhase("done");
+    setResults(record.results);
+    setHistoryOpen(false);
+  }, [setResults, setPhase]);
+
+  const handleGoHome = useCallback(() => {
+    cancel();
+    setFileName("");
+    setSearchQuery("");
+    setResults(null);
+  }, [cancel, setResults]);
 
   const handleStartOver = useCallback(() => {
     cancel();
@@ -116,41 +103,42 @@ export default function Home() {
   }, [cancel]);
 
   const isIdle = phase === "idle";
-  const isProcessing =
-    phase !== "idle" && phase !== "done" && phase !== "error";
+  const isProcessing = phase !== "idle" && phase !== "done" && phase !== "error";
   const isDone = phase === "done";
-
-  const toggleLocale = () => {
-    setLocale(locale === "zh" ? "en" : "zh");
-  };
 
   return (
     <div className="min-h-screen flex flex-col">
       {/* header */}
-      <header className="border-b border-warm-200 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold font-serif text-ink tracking-tight">
-              LexiLoom
-            </h1>
-            <p className="text-xs text-warm-400">{t("header.subtitle")}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            {/* language toggle */}
+      <header className="sticky top-0 z-20 border-b border-warm-200/60 bg-white/80 backdrop-blur-md">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+          <button
+            onClick={handleGoHome}
+            className="flex items-center gap-2.5 hover:opacity-70 transition-opacity"
+          >
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ background: "var(--brand-gradient)" }}
+            >
+              <BookOpen className="w-3.5 h-3.5 text-white" />
+            </div>
+            <div className="text-left leading-tight">
+              <span className="text-sm font-bold font-serif text-ink tracking-tight">
+                LexiLoom
+              </span>
+            </div>
+          </button>
+          <div className="flex items-center gap-2">
             <button
-              onClick={toggleLocale}
-              className="flex items-center gap-1 text-xs font-medium text-warm-500 hover:text-ink transition-colors"
-              aria-label={t("lang.switchTo")}
+              onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
+              className="text-[11px] font-medium text-warm-400 hover:text-ink transition-colors px-2 py-1 rounded-md hover:bg-warm-100"
             >
               {t("lang.switchTo")}
             </button>
-
-            {/* history button */}
             <button
               onClick={() => setHistoryOpen(true)}
-              className="flex items-center gap-1.5 text-xs font-medium text-warm-500 hover:text-ink transition-colors"
+              className="flex items-center gap-1.5 text-[11px] font-medium text-warm-400 hover:text-ink transition-colors px-2 py-1 rounded-md hover:bg-warm-100"
             >
-              <History className="w-4 h-4" />
+              <History className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{t("header.history")}</span>
             </button>
           </div>
@@ -159,33 +147,49 @@ export default function Home() {
 
       {/* main */}
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-8">
-        {/* idle: hero */}
+        {/* idle */}
         {isIdle && (
-          <div className="flex flex-col items-center gap-8 pt-8 pb-4">
-            <div
-              className="w-20 h-20 rounded-2xl flex items-center justify-center"
-              style={{ background: "var(--brand-gradient)" }}
-            >
-              <BookOpen className="w-9 h-9 text-white" />
-            </div>
-            <div className="text-center">
-              <h2 className="text-3xl font-serif font-bold text-ink">
-                LexiLoom
-              </h2>
-              <p className="text-sm text-warm-500 mt-2 max-w-sm">
-                {t("hero.subtitle")}
-              </p>
-            </div>
+          <div className="flex flex-col items-center gap-6 pt-8 pb-4">
+            <h2 className="text-3xl font-serif font-bold text-ink text-center">
+              {t("hero.title")}
+            </h2>
+            <p className="text-sm text-warm-500 max-w-md text-center leading-relaxed -mt-4">
+              {t("hero.subtitle")}
+            </p>
+
             <div className="w-full max-w-md">
               <UploadZone onFile={handleFile} />
             </div>
-            <p className="text-xs text-warm-400 italic text-center max-w-xs">
-              &ldquo;A word after a word after a word is power.&rdquo;
-              <br />
-              <span className="not-italic text-warm-300">
-                &mdash; Margaret Atwood
-              </span>
-            </p>
+
+            {/* demo button */}
+            <button
+              onClick={handleDemo}
+              disabled={demoLoading}
+              className="flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-700 transition-colors disabled:opacity-50"
+            >
+              <Play className="w-4 h-4" />
+              {demoLoading ? t("landing.demoLoading") : t("landing.demo")}
+            </button>
+
+            {/* steps */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-2xl mt-6">
+              {[
+                { icon: FileText, title: t("landing.step1Title"), desc: t("landing.step1Desc") },
+                { icon: BarChart3, title: t("landing.step2Title"), desc: t("landing.step2Desc") },
+                { icon: Sparkles, title: t("landing.step3Title"), desc: t("landing.step3Desc") },
+              ].map((step, i) => {
+                const Icon = step.icon;
+                return (
+                  <div key={i} className="bg-white border border-warm-200 rounded-xl p-5 text-center hover:shadow-sm transition-shadow">
+                    <div className="w-10 h-10 rounded-xl bg-warm-100 flex items-center justify-center mx-auto mb-3">
+                      <Icon className="w-5 h-5 text-warm-500" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-ink mb-1">{step.title}</h3>
+                    <p className="text-xs text-warm-400 leading-relaxed">{step.desc}</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -227,19 +231,16 @@ export default function Home() {
         {/* done: results */}
         {isDone && (
           <div className="space-y-5">
-            {/* dict-unavailable warning banner */}
             {error && (
               <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 text-sm text-amber-700">
                 {error}
               </div>
             )}
 
-            {/* stats + export row */}
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <StatsSummary
                 totalWords={totalWords}
                 uniqueLemmas={uniqueLemmas}
-                coveragePercent={coveragePercent}
                 filteredCount={filteredResults.length}
               />
               <ExportPdfButton
@@ -247,16 +248,14 @@ export default function Home() {
                 fileName={fileName}
                 totalWords={totalWords}
                 uniqueLemmas={uniqueLemmas}
-                coveragePercent={coveragePercent}
+                coveragePercent={0}
                 stopwordsLevel={filters.stopwordsLevel}
                 activeTags={filters.activeTags}
               />
             </div>
 
-            {/* filters */}
             <FilterBar filters={filters} onChange={setFilters} />
 
-            {/* keyword search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-warm-400" />
               <input
@@ -268,20 +267,17 @@ export default function Home() {
               />
             </div>
 
-            {/* word list */}
             <WordList results={filteredResults} />
           </div>
         )}
       </main>
 
-      {/* footer */}
       <footer className="border-t border-warm-200 py-4 text-center text-xs text-warm-400">
         <span className="font-serif font-semibold">LexiLoom</span>{" "}
         &middot;{" "}
         {t("footer.tagline")}
       </footer>
 
-      {/* history drawer */}
       <HistoryDrawer
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}

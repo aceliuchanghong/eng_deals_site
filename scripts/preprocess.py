@@ -428,7 +428,9 @@ def main():
     with open(os.path.join(STOPWORDS_DIR, "basic.json"), "w", encoding="utf-8") as f:
         json.dump(basic, f, ensure_ascii=False, separators=(",", ":"))
 
-    strong = sorted(set(w.lower() for w in BASIC_STOPWORDS + STRONG_EXTRA))
+    # ponytail: include single letters a-z so they don't clutter results
+    single_letters = [chr(i) for i in range(97, 123)]
+    strong = sorted(set(w.lower() for w in BASIC_STOPWORDS + STRONG_EXTRA + single_letters))
     with open(os.path.join(STOPWORDS_DIR, "strong.json"), "w", encoding="utf-8") as f:
         json.dump(strong, f, ensure_ascii=False, separators=(",", ":"))
 

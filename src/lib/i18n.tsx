@@ -25,9 +25,47 @@ const dict: TranslationDict = {
   "header.history": { zh: "历史", en: "History" },
 
   // Idle hero
+  "hero.title": {
+    zh: "编织你的小说数据",
+    en: "Weave your novel into data",
+  },
   "hero.subtitle": {
     zh: "分析英文小说，获取词频、音标、翻译及考试词汇覆盖",
     en: "Analyze English novels for word frequency, phonetics, translations, and exam-level vocabulary coverage.",
+  },
+
+  // Landing page
+  "landing.demo": {
+    zh: "试试示例文本",
+    en: "Try with sample text",
+  },
+  "landing.demoLoading": {
+    zh: "加载中...",
+    en: "Loading...",
+  },
+  "landing.step1Title": {
+    zh: "上传小说",
+    en: "Upload Novel",
+  },
+  "landing.step1Desc": {
+    zh: "拖放 .txt 英文小说文件",
+    en: "Drag & drop your .txt English novel",
+  },
+  "landing.step2Title": {
+    zh: "自动分析",
+    en: "Auto Analysis",
+  },
+  "landing.step2Desc": {
+    zh: "词频统计、词形还原、例句提取",
+    en: "Frequency count, lemmatization, example extraction",
+  },
+  "landing.step3Title": {
+    zh: "导出学习",
+    en: "Export & Study",
+  },
+  "landing.step3Desc": {
+    zh: "按考试等级筛选，导出精美 PDF",
+    en: "Filter by exam level, export beautiful PDF",
   },
 
   // Footer
@@ -103,6 +141,10 @@ const dict: TranslationDict = {
   "filters.none": { zh: "无", en: "None" },
   "filters.basic": { zh: "基础", en: "Basic" },
   "filters.strong": { zh: "强力", en: "Strong" },
+  "filters.hint": {
+    zh: "点击标签筛选考试等级（留空显示全部）",
+    en: "Click to filter by exam level (show all when none selected)",
+  },
 
   // Word list
   "wordList.empty": {

@@ -193,10 +193,13 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
 
       // Score candidates: prefer exact lemma match, prefer shorter, reward chapter diversity
       const lemmaLower = lemma.toLowerCase();
+      // ponytail: word-boundary regex to avoid substring false positives
+      // ("be" matching "because", "or" matching "for", etc.)
+      const escaped = lemmaLower.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const lemmaWordRe = new RegExp(`\\b${escaped}\\b`, "i");
       const scored = Array.from(candidateSet).map((sx) => {
-        const sentTextLower = sentences[sx].text.toLowerCase();
         let score = 0;
-        if (sentTextLower.includes(lemmaLower)) score += 1000;
+        if (lemmaWordRe.test(sentences[sx].text)) score += 1000;
         score += Math.max(0, 200 - sentences[sx].text.length);
         return { sx, score };
       });

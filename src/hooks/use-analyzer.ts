@@ -181,5 +181,5 @@ export function useAnalyzer() {
     };
   }, []);
 
-  return { phase, progress, error, results, setResults, start, cancel };
+  return { phase, setPhase, progress, error, results, setResults, start, cancel };
 }

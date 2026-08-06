@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { ArrowUp, SearchX } from "lucide-react";
 import type { WordResult } from "@/types";
 import { useI18n } from "@/lib/i18n";
-import { WordCard } from "./word-card";
+import { WordCard, WORD_GRID } from "./word-card";
 
 type Props = {
   results: WordResult[];
@@ -38,8 +38,17 @@ export function WordList({ results }: Props) {
 
   return (
     <>
+      <div className={"sticky top-14 z-10 " + WORD_GRID + " px-4 py-2 rounded-t-lg border border-warm-200 border-b-0 bg-paper text-[11px] font-medium uppercase tracking-wide text-warm-400"}>
+        <span className="text-right">{t("wordList.colRank")}</span>
+        <span>{t("wordList.colWord")}</span>
+        <span className="hidden sm:inline">{t("wordList.colPhonetic")}</span>
+        <span>{t("wordList.colFrequency")}</span>
+        <span className="text-right">{t("wordList.colCount")}</span>
+        <span>{t("wordList.colTags")}</span>
+        <span />
+      </div>
 
-      <div className="border border-warm-200 rounded-lg overflow-hidden">
+      <div className="border border-t-0 border-warm-200 rounded-b-lg overflow-hidden bg-white">
         {results.map((r, i) => (
           <div key={r.lemma} style={{ contentVisibility: "auto", containIntrinsicSize: "0 52px" }}>
             <WordCard result={r} rank={i + 1} maxCount={maxCount} />

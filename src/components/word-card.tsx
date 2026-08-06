@@ -12,6 +12,15 @@ type Props = {
   maxCount: number;
 };
 
+/**
+ * Shared grid template for the word-list table. The sticky column header
+ * (in WordList) and every row (here) use exactly the same tracks so all
+ * columns align. Columns: rank · word · phonetic · frequency · count ·
+ * tags · chevron. The frequency track is the only one that grows.
+ */
+export const WORD_GRID =
+  "grid grid-cols-[2.5rem_minmax(6.5rem,10rem)_7.5rem_minmax(2rem,1fr)_3.25rem_auto_1.25rem] items-center gap-2";
+
 export function WordCard({ result, rank, maxCount }: Props) {
   const [open, setOpen] = useState(false);
   const { t } = useI18n();
@@ -21,35 +30,34 @@ export function WordCard({ result, rank, maxCount }: Props) {
   return (
     <div
       className={cn(
-        "border-b border-warm-100 transition-colors animate-[word-enter_350ms_ease-out_both]",
-        rank % 2 === 0 ? "bg-white" : "bg-warm-50/50",
+        WORD_GRID,
+        "px-4 py-3 border-b border-warm-100 transition-colors animate-[word-enter_350ms_ease-out_both]",
+        open ? "bg-brand-50/40" : rank % 2 === 0 ? "bg-white" : "bg-warm-50/50",
       )}
       style={{ animationDelay: `${(rank - 1) * 30}ms` }}
     >
-      {/* collapsed header */}
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-warm-100/50 transition-colors"
+        className="contents text-left"
+        aria-expanded={open}
       >
         {/* rank */}
-        <span className="w-8 text-xs text-warm-400 tabular-nums text-right flex-shrink-0">
+        <span className="text-xs text-warm-400 tabular-nums text-right flex-shrink-0">
           {rank}
         </span>
 
         {/* lemma */}
-        <span className="font-serif font-bold text-base text-ink flex-shrink-0 min-w-[100px]">
+        <span className="font-serif font-bold text-[15px] leading-snug text-ink truncate">
           {lemma}
         </span>
 
         {/* phonetic */}
-        {phonetic && (
-          <span className="font-mono text-xs text-warm-500 flex-shrink-0 hidden sm:inline">
-            /{phonetic}/
-          </span>
-        )}
+        <span className="hidden sm:inline font-mono text-xs text-warm-500 truncate">
+          {phonetic ? `/${phonetic}/` : ""}
+        </span>
 
         {/* frequency bar */}
-        <div className="flex-1 h-2.5 bg-brand-100/70 rounded-full overflow-hidden min-w-[30px] group/bar relative">
+        <div className="h-2.5 bg-brand-100/70 rounded-full overflow-hidden min-w-[30px] group/bar relative">
           <div
             className="h-full rounded-full transition-all"
             style={{
@@ -73,21 +81,21 @@ export function WordCard({ result, rank, maxCount }: Props) {
         </div>
 
         {/* count */}
-        <span className="text-sm font-medium text-ink tabular-nums w-14 text-right flex-shrink-0">
+        <span className="text-sm font-medium text-ink tabular-nums text-right flex-shrink-0">
           {totalCount.toLocaleString()}
         </span>
 
         {/* exam tags */}
         <span className="flex gap-1 flex-shrink-0">
-          {tags.map((t) => (
+          {tags.map((tag) => (
             <span
-              key={t}
+              key={tag}
               className={cn(
-                "text-[10px] font-medium px-1.5 py-0.5 rounded-full border",
-                TAG_COLORS[t],
+                "text-[10px] font-medium px-1.5 py-0.5 rounded-full border whitespace-nowrap",
+                TAG_COLORS[tag],
               )}
             >
-              {TAG_LABELS[t]}
+              {TAG_LABELS[tag]}
             </span>
           ))}
         </span>
@@ -101,18 +109,18 @@ export function WordCard({ result, rank, maxCount }: Props) {
         />
       </button>
 
-      {/* expanded detail */}
+      {/* expanded detail (spans all columns) */}
       <div
         className={cn(
-          "grid transition-all duration-200",
-          open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+          "col-span-full grid transition-all duration-200",
+          open ? "grid-rows-[1fr] opacity-100 pt-1" : "grid-rows-[0fr] opacity-0",
         )}
       >
         <div className="overflow-hidden">
-          <div className="px-4 pb-4 pt-0 space-y-3">
+          <div className="pl-[5.5rem] py-3 space-y-3 border-t border-brand-100/50">
             {/* translation */}
             {translation && (
-              <div className="pl-11">
+              <div>
                 <span className="text-xs text-warm-400 block mb-1">{t("wordCard.trans")}</span>
                 {translation.split(/\\n/).map((line, i) => (
                   <p key={i} className="text-sm text-ink leading-relaxed">
@@ -124,16 +132,15 @@ export function WordCard({ result, rank, maxCount }: Props) {
 
             {/* forms */}
             {forms.length > 0 && (
-              <div className="pl-11">
+              <div>
                 <span className="text-xs text-warm-400 block mb-1">{t("wordCard.forms")}</span>
                 <div className="flex flex-wrap gap-2">
                   {forms.map((f) => (
                     <span
                       key={f.form}
-                      className="text-xs bg-warm-100 text-warm-600 px-2 py-0.5 rounded border border-warm-200"
+                      className="text-xs bg-white text-warm-600 px-2 py-0.5 rounded border border-warm-200"
                     >
-                      {f.form}{" "}
-                      <span className="text-warm-400">({f.count})</span>
+                      {f.form} <span className="text-warm-400">({f.count})</span>
                     </span>
                   ))}
                 </div>
@@ -142,7 +149,7 @@ export function WordCard({ result, rank, maxCount }: Props) {
 
             {/* examples */}
             {examples.length > 0 && (
-              <div className="pl-11">
+              <div>
                 <span className="text-xs text-warm-400 block mb-1">{t("wordCard.examples")}</span>
                 <ul className="space-y-1.5">
                   {examples.slice(0, 3).map((ex, i) => (
@@ -152,9 +159,7 @@ export function WordCard({ result, rank, maxCount }: Props) {
                     >
                       &#34;{ex.text}&#34;
                       {ex.chapter && (
-                        <span className="not-italic text-warm-400 ml-1">
-                          — {ex.chapter}
-                        </span>
+                        <span className="not-italic text-warm-400 ml-1">— {ex.chapter}</span>
                       )}
                     </li>
                   ))}

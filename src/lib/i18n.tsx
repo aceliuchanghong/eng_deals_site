@@ -157,6 +157,7 @@ const dict: TranslationDict = {
   },
   "wordList.colRank": { zh: "#", en: "#" },
   "wordList.colWord": { zh: "单词", en: "Word" },
+  "wordList.colPhonetic": { zh: "音标", en: "Phonetic" },
   "wordList.colFrequency": { zh: "频率", en: "Frequency" },
   "wordList.colCount": { zh: "次数", en: "Count" },
   "wordList.colTags": { zh: "标签", en: "Tags" },

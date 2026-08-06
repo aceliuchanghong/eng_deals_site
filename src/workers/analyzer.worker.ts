@@ -38,8 +38,9 @@ interface LemmaBlock {
 
 const WORD_RE = /[a-zA-Z]+(?:'[a-zA-Z]+)?/g;
 const CHAPTER_RE = /chapter\s+(?:\d+|[a-z]+)/gi;
-// Sentence boundary: .!? then optional closing punctuation, then whitespace, then capital letter
-const BOUNDARY_RE = /[.!?]["')”’\]]*\s+(?=[A-Z])/g;
+// Sentence boundary: .!? then optional closing punctuation, then whitespace, then
+// capital letter OR common sentence-openers: open-bracket, open-quote, digit
+const BOUNDARY_RE = /[.!?]["')”’\]]*\s+(?=[A-Z\["'“‘\d])/g;
 
 // ── Helpers ─────────────────────────────────────────────────────
 
@@ -67,6 +68,9 @@ function chapterFor(
   return undefined;
 }
 
+// Strip trailing chapter/attribution markers: "— Chapter 13", "-- Chapter 27", etc.
+const TRAILING_ATTRIBUTION_RE = /\s*["\"”]?\s*[-—–]+\s*Chapter\s+\d+[^\n]*$/i;
+
 function splitSentences(
   text: string,
 ): { text: string; start: number; end: number }[] {
@@ -80,7 +84,8 @@ function splitSentences(
 
   const out: { text: string; start: number; end: number }[] = [];
   for (let i = 0; i < boundaries.length - 1; i++) {
-    const s = text.slice(boundaries[i], boundaries[i + 1]).trim();
+    let s = text.slice(boundaries[i], boundaries[i + 1]).trim();
+    s = s.replace(TRAILING_ATTRIBUTION_RE, "").trim();
     if (s.length > 0) {
       out.push({ text: s, start: boundaries[i], end: boundaries[i + 1] });
     }

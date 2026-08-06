@@ -20,6 +20,14 @@ export function neededShards(lemmas: string[]): Set<string> {
   return shards;
 }
 
+/**
+ * Special pseudo-tag for the WEB filter UI only: shows words that carry no exam
+ * tag at all. Not a real dict tag (word.tags never contains it) — it only expands
+ * the displayed/exported set. Kept out of EXAM_TAGS so the PDF/word-card never
+ * render it as a badge.
+ */
+export const UNTAGGED = "untagged";
+
 /** Tag display names */
 export const TAG_LABELS: Record<string, string> = {
   cet4: "CET4",
@@ -30,6 +38,22 @@ export const TAG_LABELS: Record<string, string> = {
   ielts: "IELTS",
   gre: "GRE",
 };
+
+// CJK + fullwidth punctuation (+ stray ASCII brackets): a handful of ECDICT phonetic
+// entries carry annotation like "英 [...] 美 [...]" or "（r）". Those chars belong to
+// the CJK font, not the IPA font, and render as garbage/mojibake in the PDF phonetic,
+// so drop them and any leftover bracket pairs so only the transcription remains.
+const NON_PHONETIC_RE = /[　-〿＀-￯一-鿿]/g;
+
+/** Strip slashes, stray CJK/fullwidth annotation, empty bracket pairs and trim — safe for IPA display. */
+export function sanitizePhonetic(p: string | null): string {
+  if (!p) return "";
+  return p
+    .replace(/^\/+|\/+$/g, "")
+    .replace(NON_PHONETIC_RE, "")
+    .replace(/[()[\]]/g, "")
+    .trim();
+}
 
 /** Tag badge colors */
 export const TAG_COLORS: Record<string, string> = {
@@ -42,7 +66,13 @@ export const TAG_COLORS: Record<string, string> = {
   gre: "bg-rose-50 text-rose-700 border-rose-200",
 };
 
-/** Apply stopwords and exam tag filters to results */
+/**
+ * Apply stopwords + exam-tag filters.
+ *
+ * Active tags are ADDITIVE (union): a word is shown if it carries ANY selected
+ * exam tag, or (when the WEB-only UNTAGGED pseudo-tag is selected) if it carries
+ * no tags at all. When nothing is selected, no tag filter applies → all words.
+ */
 export function applyFilters(
   results: import("@/types").WordResult[],
   stopwords: Set<string>,
@@ -54,11 +84,16 @@ export function applyFilters(
     filtered = filtered.filter((r) => !stopwords.has(r.lemma.toLowerCase()));
   }
 
-  if (activeTags.length > 0) {
-    filtered = filtered.filter(
-      (r) => r.tags.length === 0 || activeTags.some((t) => r.tags.includes(t)),
-    );
-  }
+  if (activeTags.length === 0) return filtered;
+
+  const examTags = activeTags.filter((t) => t !== UNTAGGED);
+  const includeUntagged = activeTags.includes(UNTAGGED);
+
+  filtered = filtered.filter(
+    (r) =>
+      (includeUntagged && r.tags.length === 0) ||
+      examTags.some((t) => r.tags.includes(t)),
+  );
 
   return filtered;
 }

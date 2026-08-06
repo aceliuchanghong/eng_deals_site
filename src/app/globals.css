@@ -108,3 +108,18 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #c2ab8d;
 }
+
+/* IPA phonetics — the web font for pronunications must cover the IPA Extensions
+   block (ə ʊ ɔ ɛ ʌ ŋ ʃ ʒ ː ˈ ˌ). The Latin-subsetted JetBrains Mono used elsewhere
+   lacks these and falls back per-glyph to a CJK/system font that misrenders them
+   (/əʊ/ shows as /Ùu/), the same bug we fixed in the PDF. Bundle DejaVu Sans for it. */
+@font-face {
+  font-family: "DejaVu Sans IPA";
+  src: url("/fonts/DejaVuSans.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+.font-ipa {
+  font-family: "DejaVu Sans IPA", "DejaVu Sans", ui-monospace, monospace;
+}

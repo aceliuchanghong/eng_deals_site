@@ -74,6 +74,7 @@ const dict: TranslationDict = {
     zh: "搜索单词...",
     en: "Search for a word...",
   },
+  "search.clear": { zh: "清除", en: "Clear" },
 
   "footer.tagline": {
     zh: "英文词频分析器",
@@ -142,8 +143,12 @@ const dict: TranslationDict = {
   "filters.basic": { zh: "基础", en: "Basic" },
   "filters.strong": { zh: "强力", en: "Strong" },
   "filters.hint": {
-    zh: "点击标签筛选考试等级（留空显示全部）",
-    en: "Click to filter by exam level (show all when none selected)",
+    zh: "点击标签累计筛选（默认 CET6，可多选叠加）",
+    en: "Tap tags to add their words (default CET6, multi-select stacks)",
+  },
+  "filters.untagged": {
+    zh: "无标签",
+    en: "No tag",
   },
 
   // Word list

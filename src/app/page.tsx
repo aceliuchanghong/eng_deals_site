@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { History, BookOpen, Search, Sparkles, BarChart3, FileText, Play } from "lucide-react";
+import { History, BookOpen, Search, Sparkles, BarChart3, FileText, Play, X } from "lucide-react";
 import type { FilterState, AnalysisRecord } from "@/types";
-import { applyFilters } from "@/lib/utils";
+import { applyFilters, UNTAGGED } from "@/lib/utils";
 import { useAnalyzer } from "@/hooks/use-analyzer";
 import { useI18n } from "@/lib/i18n";
 import { UploadZone } from "@/components/upload-zone";
@@ -19,7 +19,7 @@ export default function Home() {
     useAnalyzer();
   const [filters, setFilters] = useState<FilterState>({
     stopwordsLevel: "strong",
-    activeTags: [],
+    activeTags: ["cet6"],
   });
   const [historyOpen, setHistoryOpen] = useState(false);
   const [fileName, setFileName] = useState("");
@@ -250,7 +250,8 @@ export default function Home() {
                 uniqueLemmas={uniqueLemmas}
                 coveragePercent={0}
                 stopwordsLevel={filters.stopwordsLevel}
-                activeTags={filters.activeTags}
+                // UNTAGGED is a web-only pseudo-tag; it must not leak into the PDF header
+                activeTags={filters.activeTags.filter((t) => t !== UNTAGGED)}
               />
             </div>
 
@@ -263,8 +264,18 @@ export default function Home() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t("search.placeholder")}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-warm-200 rounded-lg bg-white text-ink placeholder:text-warm-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-300 transition-shadow"
+                className="w-full pl-9 pr-9 py-2 text-sm border border-warm-200 rounded-lg bg-white text-ink placeholder:text-warm-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-300 transition-shadow"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  aria-label={t("search.clear")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-warm-400 hover:text-warm-600 hover:bg-warm-100 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
             <WordList results={filteredResults} />

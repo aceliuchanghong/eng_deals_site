@@ -71,6 +71,17 @@ function chapterFor(
 // Strip trailing chapter/attribution markers: "— Chapter 13", "-- Chapter 27", etc.
 const TRAILING_ATTRIBUTION_RE = /\s*["\"”]?\s*[-—–]+\s*Chapter\s+\d+[^\n]*$/i;
 
+// Normalise any ellipsis — "..." | "…" | ". . ." | "...." — to a single ellipsis char,
+// then drop leading/trailing ones. Book prose often trails off ("little bells...") and
+// the user does not want that noise in example sentences. Interior ellipses are kept.
+function cleanExample(s: string): string {
+  // Collapse ANY run of 3+ dots (with optional inner whitespace) or U+2026 to one "…",
+  // so 4+ dot ellipses (" bells....", ". . . .") leave no residual periods.
+  let t = s.replace(/(?:\.\s*){3,}|…/g, "…").trim();
+  t = t.replace(/^…+\s*/, "").replace(/\s*…+$/, "");
+  return t.trim();
+}
+
 function splitSentences(
   text: string,
 ): { text: string; start: number; end: number }[] {
@@ -86,11 +97,57 @@ function splitSentences(
   for (let i = 0; i < boundaries.length - 1; i++) {
     let s = text.slice(boundaries[i], boundaries[i + 1]).trim();
     s = s.replace(TRAILING_ATTRIBUTION_RE, "").trim();
-    if (s.length > 0) {
-      out.push({ text: s, start: boundaries[i], end: boundaries[i + 1] });
+    const c = cleanExample(s);
+    // Push the CLEANED text, and only if cleaning didn't reduce it to empty
+    // (an all-ellipsis segment like "..." would otherwise become a blank example).
+    if (c.length > 0) {
+      out.push({ text: c, start: boundaries[i], end: boundaries[i + 1] });
     }
   }
   return out;
+}
+
+// ── Chapter TOC / summary stripping ──────────────────────────────
+
+// This edition's text opens every chapter with a header + a chapter-SUMMARY line,
+// e.g.:
+//   [ Chapter 2 ]
+//   (blank / whitespace lines)
+//   　　　　　　 - the narrator crashes in the desert and makes the acquaintance...
+//
+// The summary is a TOC blurb, NOT story prose: it has no terminal period, so the
+// sentence boundary regex can't split it — it merges with the first real sentence
+// of the chapter ("...prince 　　So I lived my life alone... six years ago") and the
+// blob starts before the chapter marker, corrupting both the example text and its
+// chapter attribution. Strip the header formatting + summary here (also keeps the
+// summary's words out of the frequency counts), leaving a clean "Chapter N" marker.
+function stripChapterToc(text: string): string {
+  const lines = text.split(/\r?\n/);
+  const out: string[] = [];
+  let inHeader = false;
+  for (const line of lines) {
+    const header = /^\s*\[?\s*Chapter\s+(\d+)\s*\]?\s*$/i.exec(line);
+    if (header) {
+      out.push(`Chapter ${header[1]}`);
+      inHeader = true;
+      continue;
+    }
+    if (inHeader) {
+      // Blank / whitespace-only line between the header and the summary.
+      if (/^[\s]*$/.test(line)) continue;
+      // Non-blank starting with a dash/bullet → the summary line: drop it, then exit.
+      if (/^\s*[-–—•]/.test(line)) {
+        inHeader = false;
+        continue;
+      }
+      // Otherwise it's real prose right after the header → keep it and stop skipping.
+      inHeader = false;
+      out.push(line);
+      continue;
+    }
+    out.push(line);
+  }
+  return out.join("\n");
 }
 
 // ── Main handler ─────────────────────────────────────────────────
@@ -99,12 +156,19 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
   const { text, lemmaMap } = e.data;
 
   try {
+    // 0. Normalise chapter headers/TOC summaries, then blank the now-spurious
+    //    "Chapter N" marker lines (keeping positions identical) so chapter markers
+    //    drive attribution without polluting token counts or example sentences.
+    const prepared = stripChapterToc(text);
+    const chapters = findChapters(prepared);
+    const prose = prepared.replace(/^Chapter\s+\d+$/gm, (m) => " ".repeat(m.length));
+
     // 1. Tokenize
     post("tokenizing", 5);
     const tokens: { word: string; index: number }[] = [];
     const re = new RegExp(WORD_RE.source, "g");
     let m: RegExpExecArray | null;
-    while ((m = re.exec(text)) !== null) {
+    while ((m = re.exec(prose)) !== null) {
       tokens.push({ word: m[0].toLowerCase(), index: m.index });
     }
 
@@ -125,13 +189,9 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
       formCounts.set(t.word, (formCounts.get(t.word) ?? 0) + 1);
     }
 
-    // 3. Extract chapters
-    post("chapters", 25);
-    const chapters = findChapters(text);
-
-    // 4. Split into sentences & map tokens to sentences
+    // 3. Split into sentences & map tokens to sentences
     post("sentences", 35);
-    const sentences = splitSentences(text);
+    const sentences = splitSentences(prose);
 
     // Two-pointer: map each token index to its sentence index
     const tokenSentence = new Uint32Array(tokens.length);
@@ -196,7 +256,10 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
         if (sset) for (const idx of sset) candidateSet.add(idx);
       }
 
-      // Score candidates: prefer exact lemma match, prefer shorter, reward chapter diversity
+      // Score candidates: reward the exact lemma appearing in the sentence, and prefer
+      // LONGER, more substantive example sentences (length capped) so examples are not
+      // trivial one-liners. Exact-lemma +1000 dominates, so the longest exact-lemma
+      // sentence is chosen first. Chapter diversity is handled by the pick loop below.
       const lemmaLower = lemma.toLowerCase();
       // ponytail: word-boundary regex to avoid substring false positives
       // ("be" matching "because", "or" matching "for", etc.)
@@ -205,34 +268,41 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
       const scored = Array.from(candidateSet).map((sx) => {
         let score = 0;
         if (lemmaWordRe.test(sentences[sx].text)) score += 1000;
-        score += Math.max(0, 200 - sentences[sx].text.length);
+        score += Math.min(sentences[sx].text.length, 120);
         return { sx, score };
       });
       scored.sort((a, b) => b.score - a.score);
 
-      // Pick up to 3, preferring different chapters
+      // Pick up to 3 examples: never repeat the same sentence, prefer different chapters.
       const usedChapters = new Set<string>();
+      const usedTexts = new Set<string>();
       const examples: { text: string; chapter?: string }[] = [];
 
       for (const { sx } of scored) {
         if (examples.length >= 3) break;
+        const txt = sentences[sx].text;
+        if (usedTexts.has(txt)) continue; // no duplicate sentences
         const ch = sentChapters[sx];
         if (!ch || !usedChapters.has(ch)) {
-          examples.push({ text: sentences[sx].text, chapter: ch });
+          examples.push({ text: txt, chapter: ch });
+          usedTexts.add(txt);
           if (ch) usedChapters.add(ch);
         }
       }
-      // Fill remaining slots with any candidate
+      // Fill any remaining slots with an unused candidate (still deduped by text)
       for (const { sx } of scored) {
         if (examples.length >= 3) break;
         const txt = sentences[sx].text;
-        if (!examples.some((ex) => ex.text === txt)) {
-          examples.push({ text: txt, chapter: sentChapters[sx] });
-        }
+        if (usedTexts.has(txt)) continue;
+        examples.push({ text: txt, chapter: sentChapters[sx] });
+        usedTexts.add(txt);
       }
 
+      // 词形变化里只保留真正的变形：base form 是它自己的 lemma，等于 lemma 的表层
+      // 词形（忽略大小写）对读者是冗余，过滤掉。totalCount 不受影响。
       const forms = Array.from(agg.forms.entries())
         .map(([form, count]) => ({ form, count }))
+        .filter((f) => f.form.toLowerCase() !== lemma.toLowerCase())
         .sort((a, b) => b.count - a.count);
 
       lemmas.push({ lemma, totalCount: agg.total, forms, examples });

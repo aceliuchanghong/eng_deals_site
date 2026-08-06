@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { WordResult } from "@/types";
-import { cn, TAG_LABELS, TAG_COLORS } from "@/lib/utils";
+import { cn, TAG_LABELS, TAG_COLORS, sanitizePhonetic } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 
 type Props = {
@@ -26,6 +26,7 @@ export function WordCard({ result, rank, maxCount }: Props) {
   const { t } = useI18n();
   const { lemma, totalCount, forms, examples, phonetic, translation, tags } = result;
   const barWidth = maxCount > 0 ? (totalCount / maxCount) * 100 : 0;
+  const cleanPhonetic = sanitizePhonetic(phonetic);
 
   return (
     <div
@@ -51,9 +52,9 @@ export function WordCard({ result, rank, maxCount }: Props) {
           {lemma}
         </span>
 
-        {/* phonetic */}
-        <span className="hidden sm:inline font-mono text-xs text-warm-500 truncate">
-          {phonetic ? `/${phonetic}/` : ""}
+        {/* phonetic — .font-ipa so IPA glyphs render (JetBrains Mono has none) */}
+        <span className="hidden sm:inline font-ipa text-xs text-warm-500 truncate">
+          {cleanPhonetic ? `/${cleanPhonetic}/` : ""}
         </span>
 
         {/* frequency bar */}

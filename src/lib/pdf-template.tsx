@@ -9,18 +9,27 @@ import {
 import type { WordResult, StopwordsLevel } from "@/types";
 import type { Locale } from "@/lib/i18n";
 import { translate } from "@/lib/i18n";
-import { TAG_LABELS } from "@/lib/utils";
+import { TAG_LABELS, sanitizePhonetic } from "@/lib/utils";
 
 // ── Font registration ────────────────────────────────────────────
 
 const origin = typeof window !== "undefined" ? window.location.origin : "";
-// Source Han Serif CN: serif, full CJK + Latin + IPA coverage
+// Source Han Serif CN: serif, full CJK + Latin coverage.
+// NOTE: this font has NO IPA glyphs (ə ʊ ɔ ɛ ʌ ŋ ʃ ʒ ː ˈ ˌ are all .notdef), so
+// any IPA here would silently fall back to Helvetica and mojibake (/əʊ/ → /Ùu/).
 Font.register({
   family: "Source Han Serif CN",
   fonts: [
     { src: `${origin}/fonts/SourceHanSerifCN-Regular.ttf`, fontWeight: 400 },
     { src: `${origin}/fonts/SourceHanSerifCN-SemiBold.ttf`, fontWeight: 600 },
   ],
+});
+
+// DejaVu Sans (Book): complete IPA Extensions coverage — used so pronunciations
+// render correctly. Bundled (freely redistributable, Bitstream Vera license).
+Font.register({
+  family: "IPA",
+  fonts: [{ src: `${origin}/fonts/DejaVuSans.ttf`, fontWeight: 400 }],
 });
 
 // ── Colours ─────────────────────────────────────────────────────
@@ -36,6 +45,19 @@ const C = {
   rule: "#E0E0E0",
   white: "#FFFFFF",
   bg: "#FAFAFA",
+};
+
+// Per-exam-tag colors, on-tint + background, matching the web badge hues so the
+// PDF and UI agree (cet4-blue, cet6-indigo, tem4-violet, tem8-purple, toefl-green,
+// ielts-amber, gre-rose).
+const TAG_COLOR_HEX: Record<string, { fg: string; bg: string }> = {
+  cet4:  { fg: "#1565C0", bg: "#E3F2FD" },
+  cet6:  { fg: "#3F51B5", bg: "#E8EAF6" },
+  tem4:  { fg: "#7C4DFF", bg: "#EDE7F6" },
+  tem8:  { fg: "#7B1FA2", bg: "#F3E5F5" },
+  toefl: { fg: "#2E7D32", bg: "#E8F5E9" },
+  ielts: { fg: "#8A6D00", bg: "#FFF8E1" },
+  gre:   { fg: "#C62828", bg: "#FCE4EC" },
 };
 
 // ── Layout constants ─────────────────────────────────────────────
@@ -180,15 +202,13 @@ const S = StyleSheet.create({
   },
   phonetic: {
     fontSize: 7,
-    fontFamily: "Source Han Serif CN", fontWeight: 400,
+    fontFamily: "IPA", fontWeight: 400,
     color: C.gray,
     marginRight: 4,
   },
   tagBox: {
     fontSize: 5.5,
     fontFamily: "Source Han Serif CN", fontWeight: 600,
-    color: C.blue,
-    backgroundColor: C.blueBg,
     paddingHorizontal: 3,
     paddingVertical: 1,
     marginRight: 3,
@@ -200,8 +220,12 @@ const S = StyleSheet.create({
     fontFamily: "Source Han Serif CN", fontWeight: 400,
   },
 
-  // Chinese definition row
+  // Chinese definition row — flex row so POS and sense share one line
+  // (react-pdf View defaults to column; without this "n. 灯" would split into
+  //  "n." and "灯" on separate lines).
   chineseRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
     marginBottom: 0.5,
     paddingLeft: 12,
   },
@@ -309,9 +333,14 @@ function WordEntry({ word, index }: { word: WordResult; index: number }) {
         <Text style={S.rankBracket}>[{index}] </Text>
         <Text style={S.headword}>{word.lemma}</Text>
         {phonetic ? <Text style={S.phonetic}>{phonetic} </Text> : null}
-        {word.tags.map((tag) => (
-          <Text key={tag} style={S.tagBox}>{TAG_LABELS[tag] ?? tag}</Text>
-        ))}
+        {word.tags.map((tag) => {
+          const c = TAG_COLOR_HEX[tag] ?? { fg: C.blue, bg: C.blueBg };
+          return (
+            <Text key={tag} style={[S.tagBox, { color: c.fg, backgroundColor: c.bg }]}>
+              {TAG_LABELS[tag] ?? tag}
+            </Text>
+          );
+        })}
         <Text style={S.freqText}> {word.totalCount}次</Text>
       </View>
 
@@ -395,9 +424,17 @@ function CoverPage({
 
         {activeTags.length > 0 ? (
           <View style={S.coverFilters}>
-            {activeTags.map((tag) => (
-              <Text key={tag} style={[S.coverPill, S.coverPillOn]}>{TAG_LABELS[tag] ?? tag}</Text>
-            ))}
+            {activeTags.map((tag) => {
+              const c = TAG_COLOR_HEX[tag] ?? { fg: C.blue, bg: C.blueBg };
+              return (
+                <Text
+                  key={tag}
+                  style={[S.coverPill, { color: c.fg, borderColor: c.fg, backgroundColor: c.bg }]}
+                >
+                  {TAG_LABELS[tag] ?? tag}
+                </Text>
+              );
+            })}
           </View>
         ) : null}
       </View>
@@ -413,8 +450,7 @@ function CoverPage({
 // ── Helpers ─────────────────────────────────────────────────────
 
 function cleanPhonetic(p: string | null): string {
-  if (!p) return "";
-  const raw = p.replace(/^\/+|\/+$/g, "").trim();
+  const raw = sanitizePhonetic(p);
   return raw ? `/${raw}/` : "";
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, LoaderCircle, Volume2 } from "lucide-react";
 import type { WordResult } from "@/types";
 import { cn, TAG_LABELS, TAG_COLORS, sanitizePhonetic } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
@@ -23,10 +23,26 @@ export const WORD_GRID =
 
 export function WordCard({ result, rank, maxCount }: Props) {
   const [open, setOpen] = useState(false);
+  const [loadingAudio, setLoadingAudio] = useState<string | null>(null);
+  const [audioError, setAudioError] = useState(false);
   const { t } = useI18n();
   const { lemma, totalCount, forms, examples, phonetic, translation, tags } = result;
   const barWidth = maxCount > 0 ? (totalCount / maxCount) * 100 : 0;
   const cleanPhonetic = sanitizePhonetic(phonetic);
+
+  const play = async (text: string, key: string) => {
+    setLoadingAudio(key);
+    setAudioError(false);
+    try {
+      const { speak } = await import("@/lib/tts");
+      await speak(text);
+    } catch (error) {
+      console.error(error);
+      setAudioError(true);
+    } finally {
+      setLoadingAudio(null);
+    }
+  };
 
   return (
     <div
@@ -119,6 +135,21 @@ export function WordCard({ result, rank, maxCount }: Props) {
       >
         <div className="overflow-hidden">
           <div className="pl-[5.5rem] py-3 space-y-3 border-t border-brand-100/50">
+            <button
+              type="button"
+              onClick={() => play(lemma, "word")}
+              disabled={loadingAudio !== null}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 disabled:opacity-50"
+              aria-label={t("wordCard.speakWord")}
+            >
+              {loadingAudio === "word" ? (
+                <LoaderCircle className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Volume2 className="w-3.5 h-3.5" />
+              )}
+              {t("wordCard.speakWord")}
+            </button>
+
             {/* translation */}
             {translation && (
               <div>
@@ -154,18 +185,36 @@ export function WordCard({ result, rank, maxCount }: Props) {
                 <span className="text-xs text-warm-400 block mb-1">{t("wordCard.examples")}</span>
                 <ul className="space-y-1.5">
                   {examples.slice(0, 3).map((ex, i) => (
-                    <li
-                      key={i}
-                      className="text-xs text-warm-600 italic leading-relaxed border-l-2 border-warm-200 pl-3"
-                    >
-                      &#34;{ex.text}&#34;
-                      {ex.chapter && (
-                        <span className="not-italic text-warm-400 ml-1">— {ex.chapter}</span>
-                      )}
+                    <li key={i} className="flex items-start gap-2 border-l-2 border-warm-200 pl-3">
+                      <span className="text-xs text-warm-600 italic leading-relaxed flex-1">
+                        &#34;{ex.text}&#34;
+                        {ex.chapter && (
+                          <span className="not-italic text-warm-400 ml-1">— {ex.chapter}</span>
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => play(ex.text, `example-${i}`)}
+                        disabled={loadingAudio !== null}
+                        className="p-1 text-brand-600 hover:text-brand-700 disabled:opacity-50"
+                        aria-label={t("wordCard.speakExample")}
+                        title={t("wordCard.speakExample")}
+                      >
+                        {loadingAudio === `example-${i}` ? (
+                          <LoaderCircle className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Volume2 className="w-3.5 h-3.5" />
+                        )}
+                      </button>
                     </li>
                   ))}
                 </ul>
               </div>
+            )}
+            {audioError && (
+              <p className="text-xs text-red-600" role="alert">
+                {t("wordCard.ttsError")}
+              </p>
             )}
           </div>
         </div>

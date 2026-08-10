@@ -123,7 +123,7 @@ export default function Home() {
             </div>
             <div className="text-left leading-tight">
               <span className="text-sm font-bold font-serif text-ink tracking-tight">
-                LexiLoom
+                {t("brand.name")}
               </span>
             </div>
           </button>
@@ -284,7 +284,7 @@ export default function Home() {
       </main>
 
       <footer className="border-t border-warm-200 py-4 text-center text-xs text-warm-400">
-        <span className="font-serif font-semibold">LexiLoom</span>{" "}
+        <span className="font-serif font-semibold">{t("brand.name")}</span>{" "}
         &middot;{" "}
         {t("footer.tagline")}
       </footer>

@@ -5,6 +5,7 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
 } from "react";
 
@@ -17,6 +18,9 @@ type TranslationDict = Record<string, Record<Locale, string>>;
 // ── Dictionary ─────────────────────────────────────────────────────
 
 const dict: TranslationDict = {
+  // Brand
+  "brand.name": { zh: "词频工坊", en: "WordLoom" },
+
   // Header
   "header.subtitle": {
     zh: "英文小说词频分析器",
@@ -172,6 +176,12 @@ const dict: TranslationDict = {
   "wordCard.trans": { zh: "翻译", en: "Trans." },
   "wordCard.forms": { zh: "词形变化", en: "Forms" },
   "wordCard.examples": { zh: "例句", en: "Examples" },
+  "wordCard.speakWord": { zh: "朗读单词", en: "Read word" },
+  "wordCard.speakExample": { zh: "朗读例句", en: "Read example" },
+  "wordCard.ttsError": {
+    zh: "语音加载失败，请重试。",
+    en: "Speech failed to load. Please try again.",
+  },
 
   // Export PDF
   "exportPdf.button": { zh: "导出 PDF", en: "Export PDF" },
@@ -222,7 +232,7 @@ const dict: TranslationDict = {
 
 // ── Context ────────────────────────────────────────────────────────
 
-const LS_KEY = "lexiloom-locale";
+const LS_KEY = "app-locale";
 
 function readStoredLocale(): Locale {
   if (typeof window === "undefined") return "zh";
@@ -252,11 +262,18 @@ export function I18nProvider({
   children: ReactNode;
   defaultLocale?: Locale;
 }) {
-  const [locale, setLocaleState] = useState<Locale>(() => {
-    // ponytail: SSR-safe initial read; useEffect syncs localStorage on mount
-    if (typeof window === "undefined") return defaultLocale;
-    return readStoredLocale();
-  });
+  const [locale, setLocaleState] = useState<Locale>(defaultLocale);
+
+  // Hydration-safe: first paint always matches the server (defaultLocale).
+  // Apply the user's stored preference only after mount, so SSR and client
+  // HTML agree and React doesn't re-render the tree from a mismatch.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = readStoredLocale();
+    if (stored !== defaultLocale) {
+      setLocaleState(stored);
+    }
+  }, [defaultLocale]);
 
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);

@@ -405,7 +405,7 @@ function CoverPage({
   return (
     <Page size="A4" style={S.page}>
       <View style={S.cover}>
-        <Text style={S.coverTitle}>LexiLoom</Text>
+        <Text style={S.coverTitle}>{t("brand.name")}</Text>
         <Text style={S.coverSub}>{t("header.subtitle")}</Text>
         <View style={S.coverLine} />
         <Text style={S.coverFile}>{fileName}</Text>
@@ -440,7 +440,7 @@ function CoverPage({
       </View>
 
       <View fixed style={S.footer}>
-        <Text style={S.footerText}>LexiLoom</Text>
+        <Text style={S.footerText}>{t("brand.name")}</Text>
         <Text style={S.footerText} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
       </View>
     </Page>
@@ -525,7 +525,7 @@ export function WordFrequencyPDF({
             </View>
 
             <View fixed style={S.footer}>
-              <Text style={S.footerText}>LexiLoom</Text>
+              <Text style={S.footerText}>{t("brand.name")}</Text>
               <Text style={S.footerText} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
             </View>
           </Page>

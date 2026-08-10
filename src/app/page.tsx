@@ -14,6 +14,7 @@ import { FilterBar } from "@/components/filter-bar";
 import { WordList } from "@/components/word-list";
 import { ExportPdfButton } from "@/components/export-pdf-button";
 import { HistoryDrawer } from "@/components/history-drawer";
+import { MockupShowcase } from "@/components/mockup-showcase";
 
 export default function Home() {
   const { phase, setPhase, progress, error, results, setResults, start, cancel } =
@@ -197,6 +198,11 @@ export default function Home() {
                   </div>
                 );
               })}
+            </div>
+
+            {/* polished preview: organized result + PDF export, below the steps */}
+            <div className="mt-10 mb-2 w-full">
+              <MockupShowcase />
             </div>
           </div>
         )}

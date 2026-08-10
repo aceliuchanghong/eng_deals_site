@@ -5,6 +5,8 @@ keywords: best English novels for beginners, English original books, easy Englis
 slug: beginners-guide-choosing-your-first-english-novel
 lang: en
 category: English Reading
+datePublished: 2026-08-10
+dateModified: 2026-08-10
 ---
 
 # Reading Original English Books: How to Choose Your First Novel

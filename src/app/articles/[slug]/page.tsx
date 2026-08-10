@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Rows3 } from "lucide-react";
 import { marked } from "marked";
 import { getArticle, getArticlesByLang } from "@/lib/articles";
+import { SITE } from "@/lib/site";
 import { ArticleHeader } from "@/components/article-header";
 import { ArticleCopyButton } from "@/components/article-copy";
 
@@ -53,8 +54,46 @@ export default async function ArticlePage({ params }: Props) {
           raw: "Raw Markdown",
         };
 
+  const articleUrl = `${SITE.url}/articles/${article.slug}`;
+  const { datePublished, dateModified } = article;
+  // 结构化数据:让搜索引擎理解文章本体与页面层级
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: article.title,
+    description: article.description,
+    ...(datePublished ? { datePublished } : {}),
+    ...(dateModified ? { dateModified } : {}),
+    inLanguage: article.lang,
+    mainEntityOfPage: articleUrl,
+    author: { "@type": "Organization", name: SITE.name, url: SITE.url },
+    publisher: { "@type": "Organization", name: SITE.name, url: SITE.url },
+  };
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: SITE.name, item: SITE.url },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: article.category || "文章",
+        item: `${SITE.url}/articles`,
+      },
+      { "@type": "ListItem", position: 3, name: article.title, item: articleUrl },
+    ],
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       <ArticleHeader lang={article.lang} />
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-8">
         <Link

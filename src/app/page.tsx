@@ -301,6 +301,14 @@ export default function Home() {
         <span className="font-serif font-semibold">{t("brand.name")}</span>{" "}
         &middot;{" "}
         {t("footer.tagline")}
+        <span className="mx-2">·</span>
+        <span>{t("footer.contact")}</span>{" "}
+        <a
+          href="mailto:aceliuchanghong@gmail.com"
+          className="text-brand-600 hover:text-brand-700 transition-colors"
+        >
+          aceliuchanghong@gmail.com
+        </a>
       </footer>
 
       <HistoryDrawer

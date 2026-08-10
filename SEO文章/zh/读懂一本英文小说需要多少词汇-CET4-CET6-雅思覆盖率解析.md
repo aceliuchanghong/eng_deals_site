@@ -5,6 +5,8 @@ keywords: 英文小说词汇量, CET4词汇量, CET6词汇量, 雅思词汇量, 
 slug: english-novel-vocabulary-coverage-cet-ielts
 lang: zh-CN
 category: 英语阅读
+datePublished: 2026-08-10
+dateModified: 2026-08-10
 ---
 
 # 读懂一本英文小说需要多少词汇?CET4/CET6/雅思覆盖率解析

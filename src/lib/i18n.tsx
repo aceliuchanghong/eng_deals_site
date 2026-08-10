@@ -85,6 +85,10 @@ const dict: TranslationDict = {
     zh: "英文词频分析器",
     en: "English word frequency analyzer",
   },
+  "footer.contact": {
+    zh: "联系作者",
+    en: "Contact author",
+  },
 
   // Upload zone
   "upload.drop": {

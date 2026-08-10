@@ -6,7 +6,7 @@
  */
 export const SITE = {
   /** 正式生产域名(部署后替换)。robots / sitemap / canonical / OG 图都依赖它 */
-  url: "https://eng-deals-site.vercel.app",
+  url: "https://wordloom-jet.vercel.app",
   /** 品牌名(中文,更直白易理解) */
   name: "词频工坊",
   /** 浏览器标签 / 搜索结果标题 */

@@ -5,6 +5,8 @@ keywords: English novel vocabulary, CET4 vocabulary, CET6 vocabulary, IELTS voca
 slug: how-many-words-to-read-english-novels-cet-ielts-coverage
 lang: en
 category: English Reading
+datePublished: 2026-08-10
+dateModified: 2026-08-10
 ---
 
 # How Many Words Do You Need to Read an English Novel? A Look at CET4 / CET6 / IELTS Coverage

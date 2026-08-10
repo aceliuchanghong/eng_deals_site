@@ -13,6 +13,8 @@ export type Article = {
   keywords: string[];
   lang: ArticleLang;
   category: string;
+  datePublished?: string;
+  dateModified?: string;
   body: string; // raw markdown body (frontmatter stripped)
   raw: string; // full file content (frontmatter + body)
 };
@@ -78,6 +80,8 @@ export function getAllArticles(): Article[] {
           .filter(Boolean),
         lang,
         category: meta.category || "",
+        datePublished: meta.datePublished || undefined,
+        dateModified: meta.dateModified || undefined,
         body,
         raw,
       });

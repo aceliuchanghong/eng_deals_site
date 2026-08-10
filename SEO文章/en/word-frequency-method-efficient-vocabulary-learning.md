@@ -5,6 +5,8 @@ keywords: how to learn vocabulary, high-frequency words, word frequency, vocabul
 slug: word-frequency-method-efficient-vocabulary-learning
 lang: en
 category: English Learning
+datePublished: 2026-08-10
+dateModified: 2026-08-10
 ---
 
 # The Word-Frequency Method: Learn Vocabulary the Efficient Way

@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { BookOpen, Newspaper } from "lucide-react";
+import { BookOpen, Mail, Newspaper } from "lucide-react";
 import type { ArticleLang } from "@/lib/articles";
 
 export function ArticleHeader({ lang }: { lang: ArticleLang }) {
   const brand = lang === "zh" ? "词频工坊" : "WordLoom";
   const navLabel = lang === "zh" ? "文章" : "Articles";
+  const contactLabel = lang === "zh" ? "联系作者" : "Contact";
   const toggle = lang === "zh" ? "EN" : "中文";
   const langHref = lang === "zh" ? "/articles?lang=en" : "/articles";
   const navHref = lang === "zh" ? "/articles" : "/articles?lang=en";
@@ -26,6 +27,13 @@ export function ArticleHeader({ lang }: { lang: ArticleLang }) {
           </span>
         </Link>
         <div className="flex items-center gap-2">
+          <a
+            href="mailto:aceliuchanghong@gmail.com"
+            className="hidden sm:flex items-center gap-1.5 text-[11px] font-medium text-warm-400 hover:text-ink transition-colors px-2 py-1 rounded-md hover:bg-warm-100"
+          >
+            <Mail className="w-3.5 h-3.5" />
+            {contactLabel}
+          </a>
           <Link
             href={navHref}
             className="flex items-center gap-1.5 text-[11px] font-medium text-warm-400 hover:text-ink transition-colors px-2 py-1 rounded-md hover:bg-warm-100"

@@ -5,7 +5,7 @@ import { getAllArticles } from "@/lib/articles";
 export default function sitemap(): MetadataRoute.Sitemap {
   const articleEntries: MetadataRoute.Sitemap = getAllArticles().map((a) => ({
     url: `${SITE.url}/articles/${a.slug}`,
-    lastModified: new Date(),
+    lastModified: a.dateModified || a.datePublished || new Date(),
     changeFrequency: "monthly",
     priority: 0.6,
   }));

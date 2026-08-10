@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { History, BookOpen, Search, Sparkles, BarChart3, FileText, Play, X } from "lucide-react";
+import { History, BookOpen, Search, Sparkles, BarChart3, FileText, Play, X, Newspaper } from "lucide-react";
+import Link from "next/link";
 import type { FilterState, AnalysisRecord } from "@/types";
 import { applyFilters, UNTAGGED } from "@/lib/utils";
 import { useAnalyzer } from "@/hooks/use-analyzer";
@@ -128,6 +129,13 @@ export default function Home() {
             </div>
           </button>
           <div className="flex items-center gap-2">
+            <Link
+              href={locale === "en" ? "/articles?lang=en" : "/articles"}
+              className="flex items-center gap-1.5 text-[11px] font-medium text-warm-400 hover:text-ink transition-colors px-2 py-1 rounded-md hover:bg-warm-100"
+            >
+              <Newspaper className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{t("header.articles")}</span>
+            </Link>
             <button
               onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
               className="text-[11px] font-medium text-warm-400 hover:text-ink transition-colors px-2 py-1 rounded-md hover:bg-warm-100"

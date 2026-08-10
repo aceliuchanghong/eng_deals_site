@@ -27,6 +27,7 @@ const dict: TranslationDict = {
     en: "English Novel Word Analyzer",
   },
   "header.history": { zh: "历史", en: "History" },
+  "header.articles": { zh: "文章", en: "Articles" },
 
   // Idle hero
   "hero.title": {

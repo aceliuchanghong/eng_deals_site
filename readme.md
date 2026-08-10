@@ -14,6 +14,7 @@
 
 输出示例:
 
+```
 [753] **layer** /ˈleɪə/ `CET6` `CET4` `TOF` **6次**
 
 *n.* 层, 产卵鸡, 放置者 *vt.* 分层堆积, 压植 [计] 层
@@ -28,6 +29,7 @@
 * Morty, sTop digging for hidden layers and just be impressed. 别刨根问底了 安静地崇拜我就行 - *S03E03 01:50*
 * He wishes. He wriggled back to the meta layer through a hole 才不是 他只是从第四面墙的洞 - *S06E07 02:19*
 * by a paradimensional layer of infinite energy. 零质量意识场 - *S07E09 00:42*
+```
 
 ## 安装执行
 
